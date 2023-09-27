@@ -2,8 +2,8 @@
 
 A simple telegram bot for a chat instance with your local Llama model.
 
-Utilising [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) 
-and GGUF models for CPU and GPU support.
+Utilising [LangChain](https://python.langchain.com/docs/get_started/introduction), [llama-cpp-python](https://github.com/abetlen/llama-cpp-python) 
+and [GGUF](https://github.com/ggerganov) models for CPU and GPU support.
 
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
@@ -83,3 +83,5 @@ and start a chat with your bot on Telegram.
   - error handling
   - skip `/start` message
   - exit / abort function
+
+[Back to Top](#llamagram)
