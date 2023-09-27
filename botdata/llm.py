@@ -7,7 +7,7 @@ from botdata.settings import model_path, n_ctx, n_gpu_layers, n_batch
 
 class LangChainMemoryBot:
     def __init__(self):
-        self.llm = LlamaCpp(
+        llm = LlamaCpp(
             model_path=model_path,
             n_ctx=n_ctx,
             last_n_tokens_size=1024,
@@ -16,22 +16,23 @@ class LangChainMemoryBot:
             verbose=False,
 
             stop=["USER:", "ASSISTANT:", "HUMAN", "RESPONSE", "###", "AI:",
-                  "Human:", "\n"] 
+                  "Human:", "\n"],
             repeat_penalty=1.1,
             max_tokens=1024,
             temperature=0.3,
             )
 
         # Let LLM summarise current conversation and use this as context
-        self.memory = ConversationSummaryBufferMemory(
-            llm=self.llm,
+        # ToDo: use Langchain multi-memory
+        memory = ConversationSummaryBufferMemory(
+            llm=llm,
             max_token_limit=500  # 3000
         )
 
         self.conversation = ConversationChain(
-            llm=self.llm,
-            memory=self.memory,
-            verbose=False,
+            llm=llm,
+            memory=memory,
+            verbose=True,
         )
 
     def predict(self, prompt):

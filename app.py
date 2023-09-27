@@ -5,9 +5,9 @@ from urllib.parse import quote_plus
 from botdata.llm import LangChainMemoryBot
 from botdata.credentials import TOKEN
 
-URL = "https://api.telegram.org/bot{}/".format(TOKEN)
-LLM = LangChainMemoryBot()
-print("Bot ready.")
+# Place your Telegram bot API token in botdata/credentials.py
+URL = f"https://api.telegram.org/bot{TOKEN}"
+POLLING_TIMEOUT = 0.5
 
 
 def get_url(url):
@@ -23,55 +23,58 @@ def get_json_from_url(url):
 
 
 def get_updates(offset=None):
-    url = URL + "getUpdates?timeout=100"
+    url = f"{URL}/getUpdates?timeout=100"
     if offset:
-        url += "&offset={}".format(offset)
-    js = get_json_from_url(url)
-    return js
+        url += f"&offset={offset}"
+    return get_json_from_url(url)
 
 
 def get_last_update_id(updates):
-    update_ids = []
-    for update in updates["result"]:
-        update_ids.append(int(update["update_id"]))
-    return max(update_ids)
+    return max(int(update["update_id"]) for update in updates["result"])
 
 
 def get_last_chat_id_and_text(updates):
-    num_updates = len(updates["result"])
-    last_update = num_updates - 1
-    text = updates["result"][last_update]["message"]["text"]
-    chat_id = updates["result"][last_update]["message"]["chat"]["id"]
+    last_update = updates["result"][-1]["message"]
+    text = last_update["text"]
+    chat_id = last_update["chat"]["id"]
     return text, chat_id
-
-
-def echo_all(updates):
-    for update in updates["result"]:
-        try:
-            text = update["message"]["text"]
-            response = LLM.predict(text)
-            chat = update["message"]["chat"]["id"]
-            send_message(response, chat)
-            # send_message(text, chat)
-        except Exception as e:
-            print(e)
 
 
 def send_message(text, chat_id):
     text = quote_plus(text)
-    url = URL + "sendMessage?text={}&chat_id={}".format(text, chat_id)
+    url = f"{URL}/sendMessage?text={text}&chat_id={chat_id}"
     get_url(url)
+
+
+def process_update(update):
+    try:
+        text = update["message"]["text"]
+        print("Generating response.")
+        response = LLM.predict(text)
+        chat_id = update["message"]["chat"]["id"]
+        # ToDo: catch here to save chat history persistently
+        send_message(response, chat_id)
+        print("Listening.")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
 
 
 def main():
     last_update_id = None
     while True:
         updates = get_updates(last_update_id)
-        if len(updates["result"]) > 0:
-            last_update_id = get_last_update_id(updates) + 1
-            echo_all(updates)
-        time.sleep(0.5)
+        try:
+            if updates["result"]:
+                last_update_id = get_last_update_id(updates) + 1
+                for update in updates["result"]:
+                    process_update(update)
+            time.sleep(POLLING_TIMEOUT)
+        except KeyError:
+            raise KeyError("Could not get updates. Have you placed your "
+                           "Telegram bot API token in botdata/credentials.py?")
 
 
 if __name__ == '__main__':
+    LLM = LangChainMemoryBot()
+    print("Bot ready.\nListening.")
     main()
